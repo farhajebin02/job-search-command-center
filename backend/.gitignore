@@ -1,0 +1,8 @@
+.venv/
+secrets/
+.env
+tracker.db
+tracker.db-wal
+tracker.db-shm
+__pycache__/
+.pytest_cache/
