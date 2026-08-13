@@ -5,7 +5,50 @@ guessing. Update in place if anything changes.
 
 | What | Value | Verified |
 |---|---|---|
-| Python | 3.12.x | 2026-08-14 |
+| Python | 3.12.0 | 2026-08-14 |
 | livekit-agents | 1.6.10 | 2026-08-14 |
 | google-genai | 2.18.0 | 2026-08-14 |
 | fastapi | 0.141.1 | 2026-08-14 |
+| pypdf | 6.16.0 | 2026-08-14 |
+| uvicorn | 0.52.3 | 2026-08-14 |
+| pytest | 9.1.1 | 2026-08-14 |
+| GCP project | `minna-501517` | 2026-08-14 |
+| GCP region | `us-central1` | 2026-08-14 |
+| `GEMINI_LIVE_MODEL` | `gemini-live-2.5-flash-native-audio` | 2026-08-14 |
+| `GEMINI_BATCH_MODEL` | `gemini-2.5-flash` | 2026-08-14 |
+
+## Vertex AI credentials
+
+Reusing a **pre-existing user-managed service account** rather than creating a
+new one (Task 0.3's `gcloud iam service-accounts create` steps are therefore
+skipped as unnecessary):
+
+- Identity: `memoryassistant@minna-501517.iam.gserviceaccount.com`
+- Key path: `C:\project\memory-mcp-main\memory-assistant\minna-501517-74100a53d61f.json`
+
+The key lives **outside this repository on purpose** and is referenced by
+absolute path from `backend/.env`. Do not copy it into the repo — this
+repository is a submission artifact handed to a third party, and a service
+account private key must never travel with it, gitignored or not.
+
+Verified working: `models.list()` returned 127 models, and a real
+`generate_json` round-trip through `core/gemini.py` returned valid structured
+JSON (`{'ok': True, 'note': 'vertex reachable'}`).
+
+## Gemini model selection
+
+`gemini-live-2.5-flash-native-audio` is the **only** live/realtime-capable
+model exposed on this project — there is no alternative to fall back to if it
+misbehaves, which is what Tripwire A's STT→LLM→TTS pipeline exists for.
+
+For batch reasoning the project also exposes `gemini-3.5-flash`,
+`gemini-3.6-flash`, and `gemini-3.7-flash`. The spec names 2.5 Flash and that
+is what is configured. If scoring quality disappoints during Saturday testing,
+`gemini-3.7-flash` is a one-env-var swap — no code change.
+
+## SDK surface
+
+`google-genai` 2.18.0 matches the shape the plan assumed:
+`genai.Client(vertexai=True, project=..., location=...)` and
+`types.GenerateContentConfig(response_mime_type=..., response_schema=...)`.
+Confirmed by the live round-trip above, not by inspection alone.
