@@ -46,6 +46,22 @@ For batch reasoning the project also exposes `gemini-3.5-flash`,
 is what is configured. If scoring quality disappoints during Saturday testing,
 `gemini-3.7-flash` is a one-env-var swap — no code change.
 
+## Adzuna coverage (Task 0.5)
+
+Verified live against the India endpoint on 2026-08-14 with real credentials.
+Chennai coverage is healthy, so **Adzuna stays the primary source** and
+`backend/data/seed_chennai.json` remains a genuine fallback rather than the
+demo's actual data source:
+
+| Query | Total matches | Returned |
+|---|---|---|
+| `backend engineer` | 93 | 10 |
+| `python developer` | 231 | 10 |
+| `software engineer` | 1084 | 10 |
+
+Results carry real `redirect_url` values pointing at `adzuna.in` postings,
+which satisfies the spec's requirement for a genuine apply link.
+
 ## SDK surface
 
 `google-genai` 2.18.0 matches the shape the plan assumed:
