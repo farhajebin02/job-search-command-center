@@ -43,9 +43,16 @@ def build_scoring_prompt(profile: dict, jobs: list[dict]) -> str:
         "",
     ]
     for j in jobs:
+        # Sanitize all fields: truncate description, then collapse whitespace
+        title = " ".join(str(j.get('title') or '').split())
+        company = " ".join(str(j.get('company') or '').split())
+        location = " ".join(str(j.get('location') or '').split())
+        desc = (j.get('description') or '')[:1200]
+        desc_sanitized = " ".join(desc.split())
+
         lines.append(
-            f"JOB {j['id']} :: {j['title']} at {j['company']} ({j['location']}) :: "
-            f"{(j.get('description') or '')[:1200]}"
+            f"JOB {j['id']} :: {title} at {company} ({location}) :: "
+            f"{desc_sanitized}"
         )
     return "\n".join(lines)
 
