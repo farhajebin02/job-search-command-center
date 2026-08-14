@@ -1,4 +1,5 @@
 import json
+import re
 from datetime import datetime, timezone
 
 from core.gemini import generate_json
@@ -34,7 +35,9 @@ def build_scoring_prompt(profile: dict, jobs: list[dict]) -> str:
         "Rules: judge only against what the candidate profile states; never invent "
         "experience. Gaps must be concrete and checkable (\"no Kubernetes experience "
         "listed\"), never vague (\"could be stronger\"). rationale is exactly one "
-        "sentence. Echo job_id back exactly as given.",
+        "sentence. Echo job_id back exactly as given. job_id must be ONLY the number "
+        "that follows \"JOB\" on that job's line — for example \"1\", never \"JOB 1\" "
+        "or \"job 1\".",
         "",
         f"CANDIDATE: {profile.get('seniority')}, "
         f"{profile.get('years_experience')} years. "
@@ -55,6 +58,14 @@ def build_scoring_prompt(profile: dict, jobs: list[dict]) -> str:
             f"{desc_sanitized}"
         )
     return "\n".join(lines)
+
+
+def _parse_job_id(raw) -> int:
+    """Extract the first integer from a job_id response, handling model formatting variations."""
+    match = re.search(r"\d+", str(raw))
+    if not match:
+        raise ValueError(f"Could not parse a job id from Gemini response: {raw!r}")
+    return int(match.group())
 
 
 def score_jobs(conn, job_ids: list[int]) -> list[dict]:
@@ -79,7 +90,7 @@ def score_jobs(conn, job_ids: list[int]) -> list[dict]:
                      matched_skills_json=excluded.matched_skills_json,
                      gaps_json=excluded.gaps_json,
                      rationale=excluded.rationale, scored_at=excluded.scored_at""",
-                (int(r["job_id"]), profile["id"], r["score"],
+                (_parse_job_id(r["job_id"]), profile["id"], r["score"],
                  json.dumps(r["matched_skills"]), json.dumps(r["gaps"]),
                  r["rationale"], datetime.now(timezone.utc).isoformat()))
             written.append(r)

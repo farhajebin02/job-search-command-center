@@ -131,3 +131,15 @@ def test_prompt_sanitizes_newlines_in_job_fields(tmp_path):
     # Verify description content is present but whitespace-collapsed
     assert "Senior" in job_lines[0] and "Backend" in job_lines[0]
     assert "Python" in prompt
+
+
+def test_score_jobs_parses_job_id_with_JOB_prefix(tmp_path, monkeypatch):
+    conn, ids = _setup(tmp_path)
+    monkeypatch.setattr(scoring, "generate_json", lambda p, s, m=None: {
+        "results": [{"job_id": f"JOB {i}", "score": 70, "matched_skills": ["Python"],
+                     "gaps": ["No Kubernetes experience listed"], "rationale": "Fits."}
+                    for i in ids[:10]]})
+    scoring.score_jobs(conn, ids[:10])
+    row = conn.execute("SELECT * FROM match WHERE job_id=?", (ids[0],)).fetchone()
+    assert row is not None
+    assert row["score"] == 70
