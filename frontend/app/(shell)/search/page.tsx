@@ -12,9 +12,14 @@ function SearchContent() {
 
   useEffect(() => {
     const base = process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:8000";
-    fetch(`${base}/api/search?q=${encodeURIComponent(q)}`)
-      .then((r) => r.json())
-      .then((d) => setJobs(d.jobs));
+    const load = () => {
+      fetch(`${base}/api/search?q=${encodeURIComponent(q)}`)
+        .then((r) => r.json())
+        .then((d) => setJobs(d.jobs));
+    };
+    load();
+    window.addEventListener("jcc:refresh", load);
+    return () => window.removeEventListener("jcc:refresh", load);
   }, [q]);
 
   // Unscored jobs sort last, not first — score descending, missing score treated as lowest.
