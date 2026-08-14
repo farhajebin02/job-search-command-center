@@ -39,7 +39,21 @@ def test_search_endpoint_finds_by_company(client):
 
 def test_applications_endpoint_filters_by_stage(client):
     client.post("/api/applications/1/apply")
+
+    # Seed a second job and park it at a different stage — without this,
+    # the ?stage=applied filter is never actually exercised: the DB would
+    # contain exactly one application either way, so a broken/deleted
+    # filter would pass this test identically.
+    from core.db import connect
+    conn = connect()  # DB_PATH already set by the fixture's monkeypatch
+    conn.execute("INSERT INTO job (source, source_id, title, company, location, "
+                 "apply_url) VALUES ('seed','s2','Data Analyst','Zoho','Chennai','u')")
+    conn.commit()
+    client.post("/api/applications/2/apply")
+    client.post("/api/applications/2/stage", json={"stage": "screening"})
+
     r = client.get("/api/applications", params={"stage": "applied"})
     apps = r.json()["applications"]
     assert len(apps) == 1
+    assert apps[0]["job_id"] == 1
     assert all(a["stage"] == "applied" for a in apps)
