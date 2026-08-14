@@ -13,10 +13,18 @@ export default function FeedPage() {
 
   useEffect(() => {
     const load = () =>
-      fetchJobs().then(({ jobs }) => {
-        setJobs(jobs);
-        setState(jobs.length ? "loaded" : "empty");
-      });
+      fetchJobs()
+        .then(({ jobs }) => {
+          setJobs(jobs);
+          setState(jobs.length ? "loaded" : "empty");
+        })
+        .catch((e) => {
+          // Backend unreachable / network blip: land on the dropzone instead of
+          // stranding the user on a skeleton that will never resolve.
+          console.error("fetchJobs failed", e);
+          setUploadError(e instanceof Error ? e.message : "Could not load jobs");
+          setState("empty");
+        });
     load();
     window.addEventListener("jcc:refresh", load);
     return () => window.removeEventListener("jcc:refresh", load);
