@@ -15,6 +15,7 @@ export type Job = {
   salary_min: number | null;
   salary_max: number | null;
   match: Match | null;
+  stage?: string;
 };
 
 export type Application = {

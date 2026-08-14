@@ -23,3 +23,8 @@ export async function uploadResume(file: File) {
   if (!r.ok) throw new Error((await r.json()).detail ?? "Upload failed");
   return r.json() as Promise<{ jobs: Job[] }>;
 }
+
+export async function markApplied(jobId: number): Promise<void> {
+  const r = await fetch(`${BASE}/api/applications/${jobId}/apply`, { method: "POST" });
+  if (!r.ok) throw new Error(`Failed to mark job ${jobId} applied: ${r.status}`);
+}

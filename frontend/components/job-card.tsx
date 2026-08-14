@@ -2,10 +2,13 @@
 
 import { motion } from "framer-motion";
 import { AlertTriangle, Check, ExternalLink } from "lucide-react";
+import { useState } from "react";
+import { markApplied } from "@/lib/api";
 import type { Job } from "@/lib/types";
 
 export function JobCard({ job }: { job: Job }) {
   const m = job.match;
+  const [applied, setApplied] = useState(job.stage === "applied");
   return (
     <motion.article
       layoutId={`job-${job.id}`}
@@ -43,14 +46,32 @@ export function JobCard({ job }: { job: Job }) {
         </>
       )}
 
-      <a
-        href={job.apply_url}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="mt-4 inline-flex items-center gap-1.5 rounded-md bg-neutral-100 px-3 py-1.5 text-sm font-medium text-neutral-900 hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-400"
-      >
-        Open <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
-      </a>
+      <div className="mt-4 flex items-center gap-2">
+        {!applied && (
+          <button
+            onClick={async () => {
+              await markApplied(job.id);
+              setApplied(true);
+              window.dispatchEvent(new Event("jcc:refresh"));
+            }}
+            className="rounded-md border border-neutral-700 px-3 py-1.5 text-sm hover:bg-neutral-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-400"
+          >
+            Mark applied
+          </button>
+        )}
+        <a
+          href={job.apply_url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-400 ${
+            applied
+              ? "animate-pulse bg-emerald-400 text-neutral-900"
+              : "bg-neutral-100 text-neutral-900 hover:bg-white"
+          }`}
+        >
+          Open <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+        </a>
+      </div>
     </motion.article>
   );
 }
