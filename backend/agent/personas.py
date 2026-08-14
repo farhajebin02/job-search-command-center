@@ -4,6 +4,7 @@ from livekit.agents import Agent, function_tool, RunContext
 
 from core.db import connect, init_db
 from core.events import encode
+from core import search as core_search, tracker
 from agent import tools
 
 CO_PILOT_INSTRUCTIONS = (
@@ -48,3 +49,46 @@ class CoPilot(Agent):
     async def explain_match(self, ctx: RunContext, job_id: int) -> str:
         """Explain the score, matched skills, and gaps for one job."""
         return tools.do_explain(self._conn, job_id)
+
+    @function_tool()
+    async def save_job(self, ctx: RunContext, job_id: int) -> str:
+        """Save a job for later without applying to it."""
+        app = tracker.save_job(self._conn, job_id)
+        await self._publish("application.moved",
+                            {"job_id": job_id, "stage": app["stage"]})
+        return f"Saved job {job_id}."
+
+    @function_tool()
+    async def mark_applied(self, ctx: RunContext, job_id: int) -> str:
+        """Mark a job as applied. Does NOT open the posting — the user clicks Open."""
+        app = tracker.mark_applied(self._conn, job_id)
+        await self._publish("application.moved",
+                            {"job_id": job_id, "stage": app["stage"]})
+        return ("Marked as applied. The Open button on that card is ready "
+                "whenever you want the posting.")
+
+    @function_tool()
+    async def advance_stage(self, ctx: RunContext, job_id: int, stage: str) -> str:
+        """Move an application to a new stage, e.g. screening, round_1, offer."""
+        try:
+            app = tracker.advance_stage(self._conn, job_id, stage)
+        except ValueError as e:
+            return str(e)
+        await self._publish("application.moved",
+                            {"job_id": job_id, "stage": app["stage"]})
+        return f"Moved job {job_id} to {stage.replace('_', ' ')}."
+
+    @function_tool()
+    async def pipeline_status(self, ctx: RunContext) -> str:
+        """Summarise every application in the pipeline."""
+        return tracker.pipeline_summary(self._conn)
+
+    @function_tool()
+    async def find_jobs(self, ctx: RunContext, query: str) -> str:
+        """Retrieve previously seen jobs by company, title, or stage."""
+        found = core_search.find_jobs(self._conn, query)
+        await self._publish("navigate", {"path": f"/search?q={query}"})
+        if not found:
+            return f"I found nothing matching {query}."
+        head = ", ".join(f"{j['title']} at {j['company']}" for j in found[:3])
+        return f"Found {len(found)}. {head}."

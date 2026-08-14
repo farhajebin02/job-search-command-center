@@ -1,7 +1,7 @@
 import os
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, File, HTTPException, Query, UploadFile
+from fastapi import Body, FastAPI, File, HTTPException, Query, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from livekit import api as lk
 
@@ -11,6 +11,8 @@ from core.jobs import fetch_jobs, last_fetch, query_from_profile
 from core.profile import (PROFILE_SCHEMA, build_profile_prompt, extract_text,
                           get_profile, save_profile)
 from core.scoring import get_matches, score_jobs
+from core.search import find_jobs as _find_jobs
+from core import tracker
 
 load_dotenv()
 
@@ -68,11 +70,23 @@ def create_app() -> FastAPI:
         return {"jobs": _decorate(conn, last_fetch(conn))}
 
     @app.get("/api/applications")
-    def applications():
-        rows = conn.execute(
-            """SELECT a.*, j.title, j.company, j.apply_url FROM application a
-               JOIN job j ON j.id = a.job_id ORDER BY a.updated_at DESC""")
-        return {"applications": [dict(r) for r in rows]}
+    def applications(stage: str | None = Query(None)):
+        return {"applications": tracker.list_applications(conn, stage)}
+
+    @app.post("/api/applications/{job_id}/apply")
+    def apply(job_id: int):
+        return {"application": tracker.mark_applied(conn, job_id)}
+
+    @app.post("/api/applications/{job_id}/stage")
+    def move(job_id: int, stage: str = Body(..., embed=True)):
+        try:
+            return {"application": tracker.advance_stage(conn, job_id, stage)}
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=str(e))
+
+    @app.get("/api/search")
+    def search(q: str = Query("")):
+        return {"jobs": _find_jobs(conn, q)}
 
     return app
 

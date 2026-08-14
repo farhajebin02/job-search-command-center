@@ -65,10 +65,12 @@ def list_applications(conn, stage: str | None = None) -> list[dict]:
            "JOIN job j ON j.id = a.job_id")
     if stage == "interviewing":
         sql += f" WHERE a.stage IN ({','.join('?' * len(INTERVIEWING))})"
+        sql += " ORDER BY a.updated_at DESC"
         return [dict(r) for r in conn.execute(sql, INTERVIEWING)]
     if stage:
-        return [dict(r) for r in conn.execute(sql + " WHERE a.stage=?", (stage,))]
-    return [dict(r) for r in conn.execute(sql)]
+        return [dict(r) for r in conn.execute(
+            sql + " WHERE a.stage=? ORDER BY a.updated_at DESC", (stage,))]
+    return [dict(r) for r in conn.execute(sql + " ORDER BY a.updated_at DESC")]
 
 
 def pipeline_summary(conn) -> str:
