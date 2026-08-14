@@ -46,6 +46,26 @@ For batch reasoning the project also exposes `gemini-3.5-flash`,
 is what is configured. If scoring quality disappoints during Saturday testing,
 `gemini-3.7-flash` is a one-env-var swap — no code change.
 
+## LiveKit (Task 0.4)
+
+- URL: `wss://job-command-center-u51p42wl.livekit.cloud`
+- Credentials in `backend/.env` (gitignored).
+
+Token minting verified twice: directly against the `livekit` SDK, and through
+the real `/api/token` route with credentials loaded from `.env`. The issued
+JWT decodes to `alg=HS256` with grants
+`{roomJoin: true, room: "command-center", canPublish: true, canSubscribe: true, canPublishData: true}`.
+`canPublishData` matters — the agent publishes UI events over the room data
+channel, and without it the dashboard would never update.
+
+The SDK surface matches the plan's assumption:
+`api.AccessToken(key, secret).with_identity(...).with_grants(api.VideoGrants(...)).to_jwt()`.
+
+Note: the API secret is 27 bytes, below the 32-byte minimum PyJWT recommends
+for HS256; it emits an `InsecureKeyLengthWarning`. This is LiveKit Cloud's own
+generated secret and is theirs to size — no action, but the warning in test
+output is expected and not a defect.
+
 ## Adzuna coverage (Task 0.5)
 
 Verified live against the India endpoint on 2026-08-14 with real credentials.
