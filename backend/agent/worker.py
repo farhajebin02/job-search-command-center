@@ -15,9 +15,11 @@ load_dotenv()
 # Google account on this machine, so leaving the email unset would silently
 # pick the wrong one. Setting USER_GOOGLE_EMAIL forces the server to load
 # credentials for this specific account instead of guessing.
-WORKSPACE_MCP_USER_EMAIL = os.environ.get(
-    "WORKSPACE_MCP_USER_EMAIL", "farhajebin02@gmail.com"
-)
+def _resolve_workspace_mcp_user_email() -> str:
+    return os.environ.get("WORKSPACE_MCP_USER_EMAIL", "farhajebin02@gmail.com")
+
+
+WORKSPACE_MCP_USER_EMAIL = _resolve_workspace_mcp_user_email()
 
 
 async def entrypoint(ctx: JobContext):
