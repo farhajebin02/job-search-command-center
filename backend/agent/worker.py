@@ -2,11 +2,22 @@ import os
 
 from dotenv import load_dotenv
 from livekit.agents import AgentSession, JobContext, JobExecutorType, WorkerOptions, cli
+from livekit.agents import mcp
 from livekit.plugins import google
 
 from agent.personas import CoPilot
 
 load_dotenv()
+
+# workspace-mcp's --single-user mode picks the "first" credentials file
+# (alphabetically sorted) from ~/.google_workspace_mcp/credentials/ when no
+# email is specified. That directory holds credentials for more than one
+# Google account on this machine, so leaving the email unset would silently
+# pick the wrong one. Setting USER_GOOGLE_EMAIL forces the server to load
+# credentials for this specific account instead of guessing.
+WORKSPACE_MCP_USER_EMAIL = os.environ.get(
+    "WORKSPACE_MCP_USER_EMAIL", "farhajebin02@gmail.com"
+)
 
 
 async def entrypoint(ctx: JobContext):
@@ -17,7 +28,12 @@ async def entrypoint(ctx: JobContext):
             vertexai=True,
             project=os.environ["GCP_PROJECT_ID"],
             location=os.environ["GCP_LOCATION"],
-        )
+        ),
+        mcp_servers=[mcp.MCPServerStdio(
+            command="uvx",
+            args=["workspace-mcp", "--single-user", "--tools", "calendar"],
+            env={**os.environ, "USER_GOOGLE_EMAIL": WORKSPACE_MCP_USER_EMAIL},
+        )],
     )
     await session.start(agent=CoPilot(ctx.room), room=ctx.room)
     await session.generate_reply(

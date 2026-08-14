@@ -92,3 +92,13 @@ class CoPilot(Agent):
             return f"I found nothing matching {query}."
         head = ", ".join(f"{j['title']} at {j['company']}" for j in found[:3])
         return f"Found {len(found)}. {head}."
+
+    @function_tool()
+    async def schedule_interview(self, ctx: RunContext, job_id: int,
+                                 when: str, round_label: str = "round_1") -> str:
+        """Schedule an interview. `when` must be an ISO 8601 datetime."""
+        from core.interviews import record_interview
+        iv = record_interview(self._conn, job_id, when, round_label, None)
+        await self._publish("interview.scheduled", {"job_id": job_id, "when": when})
+        return (f"Scheduled {round_label.replace('_', ' ')} for job {job_id} "
+                f"at {when}. Interview id {iv['id']}.")
