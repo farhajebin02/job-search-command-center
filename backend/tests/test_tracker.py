@@ -74,3 +74,46 @@ def test_pipeline_summary_counts_by_stage(tmp_path):
 
 def test_pipeline_summary_handles_empty_pipeline(tmp_path):
     assert "nothing" in tracker.pipeline_summary(_conn(tmp_path)).lower()
+
+
+# Fix round 1 regression tests
+def test_mark_applied_does_not_regress_job_already_in_round_2(tmp_path):
+    """Verify mark_applied doesn't move job back from round_2 to applied."""
+    conn = _conn(tmp_path)
+    tracker.mark_applied(conn, 1)
+    tracker.advance_stage(conn, 1, "round_2")
+    app_before = tracker._get(conn, 1)
+    assert app_before["stage"] == "round_2"
+
+    # Calling mark_applied again should not regress the stage
+    app_after = tracker.mark_applied(conn, 1)
+    assert app_after["stage"] == "round_2", "mark_applied regressed stage from round_2 to applied"
+
+
+def test_save_job_does_not_regress_job_already_in_round_2(tmp_path):
+    """Verify save_job doesn't move job back from round_2 to saved."""
+    conn = _conn(tmp_path)
+    tracker.mark_applied(conn, 1)
+    tracker.advance_stage(conn, 1, "round_2")
+    app_before = tracker._get(conn, 1)
+    assert app_before["stage"] == "round_2"
+
+    # Calling save_job on an already-progressed job should not regress the stage
+    app_after = tracker.save_job(conn, 1)
+    assert app_after["stage"] == "round_2", "save_job regressed stage from round_2 to saved"
+
+
+def test_mark_applied_still_works_on_fresh_untracked_job(tmp_path):
+    """Verify mark_applied still correctly advances a fresh untracked job."""
+    conn = _conn(tmp_path)
+    app = tracker.mark_applied(conn, 2)
+    assert app["stage"] == "applied"
+    assert app["applied_at"] is not None
+
+
+def test_save_job_still_works_on_fresh_untracked_job(tmp_path):
+    """Verify save_job still correctly creates a fresh application row."""
+    conn = _conn(tmp_path)
+    app = tracker.save_job(conn, 3)
+    assert app["stage"] == "saved"
+    assert app["applied_at"] is None

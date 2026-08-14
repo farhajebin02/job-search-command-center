@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 STAGES = ["saved", "applied", "screening", "round_1", "round_2",
           "final", "offer", "rejected"]
 INTERVIEWING = ["screening", "round_1", "round_2", "final"]
+STAGE_ORDER = {s: i for i, s in enumerate(STAGES)}
 
 
 def _now() -> str:
@@ -15,17 +16,27 @@ def _get(conn, job_id: int) -> dict | None:
 
 
 def _upsert(conn, job_id: int, stage: str, applied: bool) -> dict:
-    existing = _get(conn, job_id)
-    if existing is None:
-        conn.execute(
-            """INSERT INTO application (job_id, stage, applied_at, updated_at, notes)
-               VALUES (?,?,?,?,'')""",
-            (job_id, stage, _now() if applied else None, _now()))
-    else:
-        conn.execute(
-            """UPDATE application SET stage=?, updated_at=?,
-                 applied_at=COALESCE(applied_at, ?) WHERE job_id=?""",
-            (stage, _now(), _now() if applied else None, job_id))
+    now = _now()
+    conn.execute(
+        """
+        INSERT INTO application (job_id, stage, applied_at, updated_at, notes)
+        VALUES (:job_id, :stage, :applied_at, :updated_at, '')
+        ON CONFLICT(job_id) DO UPDATE SET
+            stage = CASE
+                WHEN (CASE application.stage
+                        WHEN 'saved' THEN 0 WHEN 'applied' THEN 1 WHEN 'screening' THEN 2
+                        WHEN 'round_1' THEN 3 WHEN 'round_2' THEN 4 WHEN 'final' THEN 5
+                        WHEN 'offer' THEN 6 WHEN 'rejected' THEN 7 END) <= :stage_order
+                THEN excluded.stage
+                ELSE application.stage
+            END,
+            updated_at = excluded.updated_at,
+            applied_at = COALESCE(application.applied_at, excluded.applied_at)
+        """,
+        {"job_id": job_id, "stage": stage,
+         "applied_at": now if applied else None, "updated_at": now,
+         "stage_order": STAGE_ORDER[stage]},
+    )
     conn.commit()
     return _get(conn, job_id)
 
