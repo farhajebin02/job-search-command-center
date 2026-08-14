@@ -102,3 +102,39 @@ class CoPilot(Agent):
         await self._publish("interview.scheduled", {"job_id": job_id, "when": when})
         return (f"Scheduled {round_label.replace('_', ' ')} for job {job_id} "
                 f"at {when}. Interview id {iv['id']}.")
+
+    @function_tool()
+    async def start_mock_interview(self, ctx: RunContext, job_id: int) -> Agent:
+        """Start a mock interview for one job. Hands off to the interviewer."""
+        from core.mock import build_questions
+        questions = build_questions(self._conn, job_id)
+        await self._publish("navigate", {"path": f"/practice/{job_id}"})
+        await self._publish("mode.changed", {"mode": "mock_interview"})
+        return MockInterviewer(self._room, job_id, questions)
+
+
+class MockInterviewer(Agent):
+    def __init__(self, room, job_id: int, questions: list[str]):
+        numbered = "\n".join(f"{i+1}. {q}" for i, q in enumerate(questions))
+        super().__init__(instructions=(
+            "You are conducting a mock job interview. Ask these three questions "
+            "one at a time, waiting for a full answer before moving on. Do not "
+            "coach mid-interview. After the third answer, give brief feedback: "
+            "two strengths and two specific improvements, then call "
+            "end_mock_interview with that feedback.\n\n" + numbered
+        ))
+        self._room = room
+        self._job_id = job_id
+        self._conn = connect()
+
+    @function_tool()
+    async def end_mock_interview(self, ctx: RunContext,
+                                 strengths: list[str], improvements: list[str]) -> str:
+        """End the mock interview. Pass the two strengths and two improvements
+        you just gave as spoken feedback, so they're saved to the dashboard."""
+        from core.mock import save_session
+        save_session(self._conn, self._job_id, "",
+                     {"strengths": strengths, "improvements": improvements})
+        await self._room.local_participant.publish_data(
+            encode("navigate", {"path": "/"}), reliable=True)
+        return "Interview complete."
