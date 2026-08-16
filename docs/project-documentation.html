@@ -53,33 +53,40 @@
 <h2>The project</h2>
 
 <p class="lead">Job hunting is mostly admin. You find a role, you apply, and by
-week three the spreadsheet is stale and you have lost track of who replied. So I built a job search console you can talk to &mdash; say &ldquo;I applied to
-the data science role at Kotak&rdquo; and it is handled.</p>
+week three the spreadsheet is stale and you have lost track of who replied. So I
+built a job search console you can talk to: say &ldquo;I applied to the data
+science role at Kotak&rdquo; and it is handled.</p>
 
 <h2>Approach</h2>
 
 <p>I wanted talking to be the whole interface, not a shortcut bolted onto a form.
-The assistant and the screen work on the same data, so whatever it does by voice
-appears on the dashboard straight away, and anything you change by hand, it sees too. There is no &ldquo;add application&rdquo; step to remember, because
-talking <em>is</em> the step.</p>
+The assistant and the screen work on the same data, so what it does by voice
+appears on the dashboard straight away. There is no &ldquo;add application&rdquo;
+step to remember, because talking <em>is</em> the step.</p>
 
-<p>I also assumed from the start that voice would be messy. People mumble, mishear names, interrupt, and change their minds mid-sentence. The design had to be forgiving rather than strict, and honest when unsure.</p>
+<p>I also assumed voice would be messy. People mumble, interrupt, and change their
+minds mid-sentence, so the design had to be forgiving rather than strict: it acts
+only on jobs it has looked up, names what it changed, and asks when unsure.</p>
 
 <h2>Solution</h2>
 
-<p>Underneath, it is ordinary. A Python API over SQLite holds your
-r&eacute;sum&eacute;, the jobs it finds, how well each matches, and where every
-application stands. The browser and the assistant meet in a LiveKit room, where a
-Gemini Live model listens and answers in speech.</p>
+<p>It runs the search end to end: it reads your r&eacute;sum&eacute;, pulls
+matching roles from Adzuna, and scores each against your background with a match
+percentage and the specific gaps. It tracks applications through their stages,
+books interviews on Google Calendar, and runs mock interviews built from the job
+description and your gaps.</p>
 
-<p>The hard parts were the human ones. Early on the assistant would tell me it
-had updated a job when it had quietly changed a different one, so now it only acts on jobs it has actually looked up, and names the one it touched. Speech
-recognition mangles company names, so search is forgiving &mdash; say
-&ldquo;Senas&rdquo; and it still finds &ldquo;Sanas&rdquo;, and when unsure it
-asks instead of guessing.</p>
+<p>Underneath it is ordinary. A Python API over SQLite holds the
+r&eacute;sum&eacute;, the jobs, the scores, and the pipeline. The browser and the
+assistant meet in a LiveKit room, where a Gemini Live model listens and answers in
+speech.</p>
 
-<p>Mock interviews run as a mode that forgets the earlier conversation, so it behaves like a stranger rather than a friend who has been helping you
-all afternoon &mdash; and you can interrupt it or leave whenever you like.</p>
+<p>Scheduling shows the priority: an interview is written to the dashboard first
+and Google Calendar second, so if Google fails you are told plainly.</p>
+
+<p>Mock interviews run as a mode that forgets the earlier conversation, so it
+behaves like a stranger rather than the friend who spent all afternoon helping
+you. You can interrupt or leave whenever you like.</p>
 
 <div class="stack">
   <strong>Built with</strong> &nbsp; Next.js &middot; FastAPI &middot; SQLite &middot;
