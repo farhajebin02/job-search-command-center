@@ -20,11 +20,13 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
       setApps(applications);
       setCounts({
         discover: jobs.length,
-        score: jobs.filter((j) => j.match).length,
-        apply: applications.filter((a) => a.stage !== "saved").length,
-        track: applications.filter((a) =>
+        // Each count has to be the number of rows its own page shows. Apply
+        // counted everything past "saved" while the page it links to listed
+        // only "applied", so the spine said 11 above a list of 6.
+        apply: applications.filter((a) => a.stage === "applied").length,
+        track: applications.length,
+        schedule: applications.filter((a) =>
           ["screening", "round_1", "round_2", "final"].includes(a.stage)).length,
-        schedule: 0,
         practice: 0,
       });
     };

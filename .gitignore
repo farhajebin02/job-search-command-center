@@ -1,0 +1,21 @@
+# Runtime logs. These are not just noise: worker.log carries full voice
+# transcripts, the account email, and the LiveKit project URL.
+*.log
+
+# Timestamped database snapshots. backend/.gitignore already covers
+# tracker.db, but not the backups, and those hold real applications and the
+# parsed resume profile.
+backend/tracker.backup-*.db
+*.db-wal
+*.db-shm
+
+# Agent tooling vendored into the working tree by local tools. Third-party,
+# separately licensed, and no part of this project.
+.claude/
+.agents/
+.superpowers/
+skills-lock.json
+
+# OS noise
+.DS_Store
+Thumbs.db

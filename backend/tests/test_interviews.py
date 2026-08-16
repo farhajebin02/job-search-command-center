@@ -26,6 +26,20 @@ def test_record_interview_requires_a_tracked_job(tmp_path):
         interviews.record_interview(conn, 999, "2026-08-18T15:00:00", "round_1", None)
 
 
+def test_set_calendar_event_backfills_the_id_after_the_event_is_created(tmp_path):
+    # The row is written before Google is called, so that a failed calendar
+    # write cannot cost the user the interview record. The id therefore
+    # arrives second.
+    conn = _conn(tmp_path)
+    iv = interviews.record_interview(conn, 1, "2026-08-18T15:00:00", "round_1", None)
+
+    interviews.set_calendar_event(conn, iv["id"], "evt-9")
+
+    row = conn.execute("SELECT calendar_event_id FROM interview WHERE id=?",
+                       (iv["id"],)).fetchone()
+    assert row["calendar_event_id"] == "evt-9"
+
+
 def test_upcoming_lists_future_interviews_with_job_details(tmp_path):
     conn = _conn(tmp_path)
     interviews.record_interview(conn, 1, "2099-01-01T10:00:00", "round_1", None)

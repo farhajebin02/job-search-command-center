@@ -15,6 +15,13 @@ def record_interview(conn, job_id: int, when: str, round_label: str,
                              (cur.lastrowid,)).fetchone())
 
 
+def set_calendar_event(conn, interview_id: int, calendar_event_id: str) -> None:
+    """Attach a Google event to an interview already on record."""
+    conn.execute("UPDATE interview SET calendar_event_id=? WHERE id=?",
+                 (calendar_event_id, interview_id))
+    conn.commit()
+
+
 def upcoming(conn) -> list[dict]:
     now = datetime.now(timezone.utc).isoformat()
     rows = conn.execute(

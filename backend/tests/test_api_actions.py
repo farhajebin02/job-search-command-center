@@ -32,6 +32,16 @@ def test_stage_endpoint_rejects_unknown_stage(client):
     assert r.status_code == 400
 
 
+def test_stage_endpoint_tracks_a_job_that_was_never_applied_to(client):
+    # The status dropdown on a job card posts straight here, so a job the user
+    # never marked applied must not come back as a 400.
+    r = client.post("/api/applications/1/stage", json={"stage": "screening"})
+    assert r.status_code == 200
+    assert r.json()["application"]["stage"] == "screening"
+    assert any(a["stage"] == "screening"
+               for a in client.get("/api/applications").json()["applications"])
+
+
 def test_search_endpoint_finds_by_company(client):
     r = client.get("/api/search", params={"q": "freshworks"})
     assert [j["company"] for j in r.json()["jobs"]] == ["Freshworks"]

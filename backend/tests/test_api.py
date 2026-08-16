@@ -37,6 +37,35 @@ def test_token_requires_identity(client):
     assert client.get("/api/token").status_code == 422
 
 
+def test_each_page_load_gets_its_own_room(client, monkeypatch):
+    # LiveKit dispatches an agent job when a room is created. A fixed room name
+    # means a room outliving a worker restart never gets an agent, and no
+    # amount of reloading fixes it.
+    from api import main as main_mod
+    monkeypatch.setattr(main_mod, "reap_rooms", lambda prefix: None)
+    a = client.get("/api/token", params={"identity": "u1"}).json()["room"]
+    b = client.get("/api/token", params={"identity": "u1"}).json()["room"]
+    assert a != b
+    assert a.startswith("command-center-")
+    assert b.startswith("command-center-")
+
+
+def test_an_explicit_room_is_still_honoured(client):
+    r = client.get("/api/token", params={"identity": "u1", "room": "fixed-room"})
+    assert r.json()["room"] == "fixed-room"
+
+
+def test_token_is_issued_even_if_reaping_old_rooms_fails(client, monkeypatch):
+    # Clearing abandoned rooms is housekeeping. If LiveKit is unreachable the
+    # user must still be able to connect.
+    from api import main as main_mod
+    monkeypatch.setattr(main_mod, "reap_rooms",
+                        lambda prefix: (_ for _ in ()).throw(RuntimeError("cloud down")))
+    r = client.get("/api/token", params={"identity": "u1"})
+    assert r.status_code == 200
+    assert r.json()["token"].count(".") == 2
+
+
 def test_jobs_is_empty_on_cold_start(client):
     assert client.get("/api/jobs").json() == {"jobs": []}
 

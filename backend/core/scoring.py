@@ -94,7 +94,13 @@ def score_jobs(conn, job_ids: list[int]) -> list[dict]:
                  json.dumps(r["matched_skills"]), json.dumps(r["gaps"]),
                  r["rationale"], datetime.now(timezone.utc).isoformat()))
             written.append(r)
-    conn.commit()
+        # Commit per batch, not once at the end: SQLite opens the write
+        # transaction on the first INSERT and holds it until commit, so
+        # deferring this would keep the database write-locked across every
+        # remaining Gemini call. Concurrent writers (the API process, a second
+        # agent session) then blow past busy_timeout and get "database is
+        # locked".
+        conn.commit()
     return written
 
 

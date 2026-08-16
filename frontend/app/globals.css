@@ -117,6 +117,13 @@
   --sidebar-ring: oklch(0.556 0 0);
 }
 
+/* Indeterminate progress used by the work surface while the agent is working
+   on a long tool call. */
+@keyframes jcc-slide {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(400%); }
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

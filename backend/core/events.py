@@ -3,6 +3,8 @@ import json
 EVENT_TYPES = {
     "jobs.updated", "scores.updated", "application.moved",
     "interview.scheduled", "mode.changed", "navigate",
+    # Inbound: published by the web UI, consumed by the agent.
+    "ui.command",
 }
 
 

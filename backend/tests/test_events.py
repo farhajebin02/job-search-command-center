@@ -17,7 +17,12 @@ def test_encode_rejects_unknown_event_type():
 
 
 def test_every_spec_event_type_is_registered():
+    # Keep in step with the JccEvent union in frontend/lib/events.ts — the two
+    # halves of this contract have to agree for the data channel to work.
     assert EVENT_TYPES == {
+        # Outbound: agent -> UI.
         "jobs.updated", "scores.updated", "application.moved",
         "interview.scheduled", "mode.changed", "navigate",
+        # Inbound: UI -> agent.
+        "ui.command",
     }

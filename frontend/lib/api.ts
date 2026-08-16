@@ -1,4 +1,4 @@
-import type { Application, Job } from "./types";
+import type { Application, Job, Stage } from "./types";
 
 const BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:8000";
 
@@ -27,4 +27,15 @@ export async function uploadResume(file: File) {
 export async function markApplied(jobId: number): Promise<void> {
   const r = await fetch(`${BASE}/api/applications/${jobId}/apply`, { method: "POST" });
   if (!r.ok) throw new Error(`Failed to mark job ${jobId} applied: ${r.status}`);
+}
+
+/** Set an application's stage outright. Starts tracking the job if it wasn't
+ *  already, so an untracked job can go straight to "Interviewing". */
+export async function setStage(jobId: number, stage: Stage): Promise<void> {
+  const r = await fetch(`${BASE}/api/applications/${jobId}/stage`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ stage }),
+  });
+  if (!r.ok) throw new Error(`Failed to move job ${jobId} to ${stage}: ${r.status}`);
 }

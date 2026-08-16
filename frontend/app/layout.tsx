@@ -21,7 +21,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             token={conn.token}
             serverUrl={conn.url}
             connect
-            audio
+            // Connect with the mic closed — nothing is captured until the user
+            // opens it from the mic control.
+            audio={false}
             video={false}
           >
             <RoomAudioRenderer />

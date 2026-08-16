@@ -4,10 +4,15 @@ import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 
 const SEGMENTS = [
+  // Discover and Score were separate segments pointing at the same route.
+  // Scoring runs automatically after every fetch, so the two counts were always
+  // equal and the split told the user nothing.
   { key: "discover", label: "Discover", href: "/" },
-  { key: "score", label: "Score", href: "/" },
   { key: "apply", label: "Apply", href: "/pipeline?stage=applied" },
-  { key: "track", label: "Track", href: "/pipeline?stage=interviewing" },
+  // Track is the whole board, not one column of it. It used to point at the
+  // interviewing stages alone, which is the one question it cannot answer:
+  // where each company stands.
+  { key: "track", label: "Track", href: "/pipeline?stage=all" },
   { key: "schedule", label: "Schedule", href: "/pipeline?stage=interviewing" },
   { key: "practice", label: "Practice", href: null },
 ] as const;

@@ -1,12 +1,9 @@
 "use client";
 
-import type { Application } from "@/lib/types";
-
-const ORDER = ["saved", "applied", "screening", "round_1", "round_2",
-                "final", "offer", "rejected"];
+import { STAGES, STAGE_LABEL, type Application } from "@/lib/types";
 
 export function PipelineRail({ applications }: { applications: Application[] }) {
-  const grouped = ORDER.map((stage) => ({
+  const grouped = STAGES.map((stage) => ({
     stage,
     items: applications.filter((a) => a.stage === stage),
   })).filter((g) => g.items.length > 0);
@@ -20,7 +17,7 @@ export function PipelineRail({ applications }: { applications: Application[] }) 
       {grouped.map((g) => (
         <details key={g.stage} open={g.stage === "applied"} className="mb-2">
           <summary className="cursor-pointer text-xs uppercase tracking-wide text-neutral-500">
-            {g.stage.replace("_", " ")} ({g.items.length})
+            {STAGE_LABEL[g.stage]} ({g.items.length})
           </summary>
           <ul className="mt-2 space-y-1">
             {g.items.map((a) => (

@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Job Search Command Center — Project Documentation</title>
+<style>
+  @page { size: A4; margin: 20mm 18mm; }
+  * { box-sizing: border-box; }
+  body {
+    font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    color: #16181d;
+    line-height: 1.55;
+    font-size: 10.5pt;
+    margin: 0;
+  }
+  header { border-bottom: 2px solid #16181d; padding-bottom: 10px; margin-bottom: 18px; }
+  h1 { font-size: 19pt; margin: 0 0 4px; letter-spacing: -0.01em; }
+  .sub { color: #5b6270; font-size: 9.5pt; margin: 0; }
+  h2 {
+    font-size: 11pt; margin: 18px 0 6px; text-transform: uppercase;
+    letter-spacing: 0.08em; color: #3a4150;
+  }
+  p { margin: 0 0 9px; text-align: justify; }
+  .stack {
+    margin: 16px 0 4px; border-top: 1px solid #d8dce3;
+    border-bottom: 1px solid #d8dce3; padding: 9px 0;
+    font-size: 9pt; color: #3a4150;
+  }
+  .stack strong { color: #16181d; }
+  code { font-family: Consolas, "Courier New", monospace; font-size: 9.5pt; }
+  footer {
+    margin-top: 16px; padding-top: 8px; border-top: 1px solid #d8dce3;
+    font-size: 8.5pt; color: #7a828f;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Job Search Command Center</h1>
+  <p class="sub">Voice-first job search console &middot; Project documentation</p>
+</header>
+
+<h2>Approach</h2>
+
+<p>I treated the job search as one stateful loop &mdash; discover, apply, track,
+schedule, practise &mdash; and made voice the primary way to drive it, with the
+screen as a live view of that same state rather than a separate application.
+Every action the assistant takes is a real database write the interface
+reflects immediately, so speaking and clicking are interchangeable rather than
+parallel systems that drift apart.</p>
+
+<h2>Solution</h2>
+
+<p>A FastAPI service over SQLite holds the domain: the r&eacute;sum&eacute; profile, fetched
+jobs, Gemini match scores, application stages and interviews. A Next.js client
+joins a LiveKit room, and a LiveKit Agents worker runs a Gemini Live
+speech-to-speech agent in that same room. Both processes share the database
+directly, so an action taken by voice appears on the dashboard without any
+intermediate synchronisation layer.</p>
+
+<p>The agent is a single co-pilot with two modes rather than two personas. Mode
+is ordinary local state: entering a mock interview swaps the instructions,
+narrows the exposed tools to the interview&rsquo;s own two, and clears the
+conversation so the interviewer is genuinely isolated from earlier chat. This
+replaced an agent-handoff design that the realtime SDK silently discards
+whenever the user interrupts mid-sentence, which stranded users inside the
+interview with no way back.</p>
+
+<p>Two decisions carry most of the reliability. Before each turn the current job
+feed is injected with its database ids, and every write tool verifies the id it
+was given and names the row it actually touched &mdash; previously the model
+invented ids and reported changes it had never made. Job lookup ranks fuzzily
+instead of filtering exactly, so a speech-to-text error like <code>Senas</code> still
+resolves to <code>Sanas</code> rather than failing silently.</p>
+
+<p>The interface also drives the agent over LiveKit&rsquo;s data channel, giving
+buttons a path that never depends on the model choosing to act.</p>
+
+<div class="stack">
+  <strong>Stack</strong> &nbsp; Next.js 16 &middot; FastAPI &middot; SQLite &middot;
+  LiveKit Agents &middot; Gemini Live (Vertex AI) &middot; Adzuna &middot;
+  Google Calendar via MCP
+</div>
+
+<footer>
+  213 automated tests &middot; backend <code>pytest</code>, frontend
+  <code>tsc</code> / <code>eslint</code> / <code>next build</code>
+</footer>
+
+</body>
+</html>

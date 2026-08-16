@@ -49,13 +49,71 @@ def mark_applied(conn, job_id: int) -> dict:
     return _upsert(conn, job_id, "applied", applied=True)
 
 
+#: Spoken forms that mean a stage but do not spell it. Nobody says "round_2".
+_SPOKEN = {
+    "one": "1", "two": "2", "three": "3",
+    "first": "1", "second": "2", "third": "3",
+}
+
+#: Words for a phase of the process rather than a specific round.
+_ALIASES = {
+    "interviewing": "screening",
+    "interview": "screening",
+    "phone_screen": "screening",
+    "offered": "offer",
+    "reject": "rejected",
+    "saved_for_later": "saved",
+}
+
+
+#: Nouns for "a step in the process". They name no stage on their own, so when
+#: one trails a phase — "the screening round", "the offer stage" — it is filler.
+_PHASE_NOUNS = {"round", "stage", "step"}
+
+
+def normalise_stage(stage: str) -> str | None:
+    """Map what a person says onto a stored stage, or None if it isn't one."""
+    s = (stage or "").strip().lower().replace("-", " ").replace("_", " ")
+    words = [_SPOKEN.get(w, w) for w in s.split()]
+
+    # "round one" and "first round" are the same request said in either order.
+    if len(words) == 2 and "round" in words:
+        other = next(w for w in words if w != "round")
+        if other.isdigit():
+            return f"round_{other}" if f"round_{other}" in STAGES else None
+
+    # Otherwise a trailing phase noun modifies the stage rather than naming it:
+    # "screening round" is the screening stage. Guarded on there being a stage
+    # name left over, so a bare "round" stays ambiguous and is rejected.
+    if len(words) > 1 and words[-1] in _PHASE_NOUNS:
+        words = words[:-1]
+
+    s = "_".join(words)
+    s = _ALIASES.get(s, s)
+    return s if s in STAGES else None
+
+
 def advance_stage(conn, job_id: int, stage: str) -> dict:
-    if stage not in STAGES:
+    resolved = normalise_stage(stage)
+    if resolved is None:
         raise ValueError(f"Unknown stage: {stage}")
+    stage = resolved
+    now = _now()
     if _get(conn, job_id) is None:
-        raise ValueError(f"Job {job_id} is not tracked yet")
-    conn.execute("UPDATE application SET stage=?, updated_at=? WHERE job_id=?",
-                 (stage, _now(), job_id))
+        # An explicit stage change starts tracking a job the user never saved
+        # or applied to. Any stage at or past "applied" implies an application
+        # exists, so stamp applied_at to match.
+        applied = STAGE_ORDER[stage] >= STAGE_ORDER["applied"]
+        conn.execute(
+            "INSERT INTO application (job_id, stage, applied_at, updated_at, notes) "
+            "VALUES (?,?,?,?,'')",
+            (job_id, stage, now if applied else None, now),
+        )
+    else:
+        # Direct UPDATE, not _upsert: this is the user correcting the record,
+        # so it must be free to regress to an earlier stage.
+        conn.execute("UPDATE application SET stage=?, updated_at=? WHERE job_id=?",
+                     (stage, now, job_id))
     conn.commit()
     return _get(conn, job_id)
 
