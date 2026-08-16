@@ -50,34 +50,36 @@
   <p class="sub">A job search you can talk to &middot; Project documentation</p>
 </header>
 
-<h2>The idea</h2>
+<h2>The project</h2>
 
 <p class="lead">Job hunting is mostly admin. You find a role, you apply, and by
-week three the spreadsheet is stale and you have lost track of who replied. I
-wanted something I could just talk to &mdash; say &ldquo;I applied to the data
-science role at Kotak&rdquo; and have it handled &mdash; instead of another form to fill in.</p>
+week three the spreadsheet is stale and you have lost track of who replied. So I built a job search console you can talk to &mdash; say &ldquo;I applied to
+the data science role at Kotak&rdquo; and it is handled.</p>
 
-<p>So the whole thing is voice-first. You speak, the screen keeps up, and there is no &ldquo;add application&rdquo; step to remember, because talking
-<em>is</em> the step. Everything it does is a real change to real data, so speaking and clicking never disagree.</p>
+<h2>Approach</h2>
 
-<h2>How it is built</h2>
+<p>I wanted talking to be the whole interface, not a shortcut bolted onto a form.
+The assistant and the screen work on the same data, so whatever it does by voice
+appears on the dashboard straight away, and anything you change by hand, it sees too. There is no &ldquo;add application&rdquo; step to remember, because
+talking <em>is</em> the step.</p>
+
+<p>I also assumed from the start that voice would be messy. People mumble, mishear names, interrupt, and change their minds mid-sentence. The design had to be forgiving rather than strict, and honest when unsure.</p>
+
+<h2>Solution</h2>
 
 <p>Underneath, it is ordinary. A Python API over SQLite holds your
-r&eacute;sum&eacute;, the jobs it finds, how well each matches you, and where every
-application stands. The browser and the assistant meet in a LiveKit room, where
-a Gemini Live model listens and answers in speech. Both sides write to the same database, so nothing needs syncing.</p>
+r&eacute;sum&eacute;, the jobs it finds, how well each matches, and where every
+application stands. The browser and the assistant meet in a LiveKit room, where a
+Gemini Live model listens and answers in speech.</p>
 
-<h2>What was actually hard</h2>
+<p>The hard parts were the human ones. Early on the assistant would tell me it
+had updated a job when it had quietly changed a different one, so now it only acts on jobs it has actually looked up, and names the one it touched. Speech
+recognition mangles company names, so search is forgiving &mdash; say
+&ldquo;Senas&rdquo; and it still finds &ldquo;Sanas&rdquo;, and when unsure it
+asks instead of guessing.</p>
 
-<p>The hard problems turned out to be human ones. Early on the assistant would tell me it had updated a job when it had quietly changed a different one &mdash; guessing at record numbers nobody had given it. Now it can only act on jobs it has actually looked up, and it says which one it touched.</p>
-
-<p>Speech recognition mangles company names constantly, so search had to be forgiving. Say &ldquo;Senas&rdquo; and it still finds &ldquo;Sanas&rdquo;;
-when unsure, it asks rather than picking at random.</p>
-
-<p>Mock interviews run as a different mode of the same assistant, not a second
-one. It forgets the earlier conversation, so it behaves like a real interviewer
-rather than a friend who has been helping you all afternoon &mdash; and you can
-interrupt it or walk out whenever you want.</p>
+<p>Mock interviews run as a mode that forgets the earlier conversation, so it behaves like a stranger rather than a friend who has been helping you
+all afternoon &mdash; and you can interrupt it or leave whenever you like.</p>
 
 <div class="stack">
   <strong>Built with</strong> &nbsp; Next.js &middot; FastAPI &middot; SQLite &middot;
